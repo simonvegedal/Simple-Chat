@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Chat</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="firebase-config.js"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- Authentication Container -->
+    <div id="auth-container">
+      <div class="auth-box">
+        <h1>Simple Chat</h1>
+        <div class="tabs">
+          <button class="tab-btn active" onclick="showTab('login')">Login</button>
+          <button class="tab-btn" onclick="showTab('register')">Register</button>
+        </div>
+        
+        <div id="login-tab" class="tab-content">
+          <form id="login-form">
+            <div class="form-group">
+              <label for="login-email">Email</label>
+              <input type="email" id="login-email" required>
+            </div>
+            <div class="form-group">
+              <label for="login-password">Password</label>
+              <input type="password" id="login-password" required>
+            </div>
+            <p id="login-error" class="error-message"></p>
+            <button type="submit" class="btn">Login</button>
+          </form>
+        </div>
+        
+        <div id="register-tab" class="tab-content" style="display: none;">
+          <form id="register-form">
+            <div class="form-group">
+              <label for="register-email">Email</label>
+              <input type="email" id="register-email" required>
+            </div>
+            <div class="form-group">
+              <label for="register-password">Password</label>
+              <input type="password" id="register-password" required>
+            </div>
+            <p id="register-error" class="error-message"></p>
+            <button type="submit" class="btn">Register</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Chat Container -->
+    <div id="chat-container" class="hidden">
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <h2>Simple Chat</h2>
+          <div class="user-info">
+            <span id="user-email"></span>
+            <button id="logout-button" class="btn-small">Logout</button>
+          </div>
+        </div>
+        
+        <div class="add-contact">
+          <form id="new-contact-form">
+            <input type="email" id="contact-email" placeholder="Add contact by email" required>
+            <button type="submit" class="btn-small">Add</button>
+          </form>
+          <p id="new-contact-error" class="error-message"></p>
+        </div>
+        
+        <div class="contacts-header">Contacts</div>
+        <div id="contacts-list" class="contacts-list">
+          <!-- Contacts will be populated here -->
+        </div>
+      </div>
+      
+      <div class="chat-area">
+        <div class="chat-header">
+          <h3 id="current-contact">Select a contact</h3>
+        </div>
+        
+        <div id="messages-container" class="messages-container">
+          <!-- Messages will be populated here -->
+        </div>
+        
+        <form id="message-form" class="message-form">
+          <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
+          <button type="submit" class="btn">Send</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Tab navigation
+    function showTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.style.display = 'none';
+      });
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      document.getElementById(tabName + '-tab').style.display = 'block';
+      document.querySelector(`button[onclick="showTab('${tabName}')"]`).classList.add('active');
+    }
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>
