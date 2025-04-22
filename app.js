@@ -1,5 +1,4 @@
-  // app.js
-  document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
     // DOM elements
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
@@ -12,6 +11,8 @@
     const contactsList = document.getElementById('contacts-list');
     const newContactForm = document.getElementById('new-contact-form');
     const currentContactDisplay = document.getElementById('current-contact');
+    const backButton = document.getElementById('back-to-contacts');
+    const sidebar = document.querySelector('.sidebar');
     
     let currentUser = null;
     let currentContact = null;
@@ -26,6 +27,7 @@
         chatContainer.classList.remove('hidden');
         document.getElementById('user-email').textContent = user.email;
         loadContacts();
+        initResponsiveLayout();
       } else {
         // User is signed out
         currentUser = null;
@@ -81,6 +83,13 @@
       logoutButton.addEventListener('click', (e) => {
         e.preventDefault();
         auth.signOut();
+      });
+    }
+  
+    // Mobile back button handler
+    if (backButton) {
+      backButton.addEventListener('click', () => {
+        sidebar.classList.remove('hidden-mobile');
       });
     }
   
@@ -197,6 +206,11 @@
       
       // Load messages for this contact
       loadMessages(contactEmail);
+      
+      // Hide sidebar on mobile when a contact is selected
+      if (window.innerWidth <= 768) {
+        sidebar.classList.add('hidden-mobile');
+      }
     }
   
     // Load messages for a specific contact
@@ -211,7 +225,11 @@
           snapshot.docChanges().forEach((change) => {
             if (change.type === 'added') {
               const message = change.doc.data();
-              displayMessage(message);
+              // Only display if not already displayed
+              if (!document.getElementById(`message-${message.id || change.doc.id}`)) {
+                message.id = message.id || change.doc.id; // Ensure the message has an ID
+                displayMessage(message);
+              }
             }
           });
           
@@ -225,128 +243,107 @@
       // Create a unique chat ID from the two email addresses (always ordered the same way)
       const chatId = [currentUser.email, toEmail].sort().join('_');
       
-      // Add message to Firestore
-      db.collection('chats').doc(chatId).collection('messages').add({
+      // Create a new document reference to get the ID
+      const messageRef = db.collection('chats').doc(chatId).collection('messages').doc();
+      
+      // Create the message object
+      const messageData = {
         sender: currentUser.email,
         text: messageText,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      })
-      .catch((error) => {
-        console.error("Error sending message: ", error);
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        id: messageRef.id // Store the ID in the message itself
+      };
+      
+      // Add message to Firestore
+      messageRef.set(messageData)
+        .catch((error) => {
+          console.error("Error sending message: ", error);
+        });
+      
+      // Also display the message immediately with Sending... status
+      displayMessage({
+        ...messageData,
+        timestamp: null, // Set to null to show "Sending..."
       });
+      
+      return messageRef.id;
     }
   
+    // Display a message in the UI
     function displayMessage(message) {
-        const messageElement = document.createElement('div');
-        messageElement.classList.add('message');
-        
-        if (message.sender === currentUser.email) {
-          messageElement.classList.add('sent');
+      const messageElement = document.createElement('div');
+      messageElement.classList.add('message');
+      
+      if (message.sender === currentUser.email) {
+        messageElement.classList.add('sent');
+      } else {
+        messageElement.classList.add('received');
+      }
+      
+      const textElement = document.createElement('div');
+      textElement.classList.add('message-text');
+      textElement.textContent = message.text;
+      
+      const infoElement = document.createElement('div');
+      infoElement.classList.add('message-info');
+      
+      // Store the message element ID to update it later
+      const messageId = message.id || Date.now().toString();
+      messageElement.id = `message-${messageId}`;
+      
+      // Format timestamp if it exists
+      let timeDisplay = 'Sending...';
+      if (message.timestamp) {
+        const date = message.timestamp.toDate();
+        timeDisplay = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+      
+      infoElement.textContent = `${message.sender === currentUser.email ? 'You' : message.sender} • ${timeDisplay}`;
+      infoElement.id = `info-${messageId}`;
+      
+      messageElement.appendChild(textElement);
+      messageElement.appendChild(infoElement);
+      
+      messagesContainer.appendChild(messageElement);
+      
+      // If timestamp doesn't exist, set up a listener for this specific message
+      if (!message.timestamp && message.id) {
+        const chatId = [currentUser.email, currentContact].sort().join('_');
+        db.collection('chats').doc(chatId).collection('messages').doc(message.id)
+          .onSnapshot((doc) => {
+            if (doc.exists && doc.data().timestamp) {
+              const updatedMessage = doc.data();
+              const date = updatedMessage.timestamp.toDate();
+              const updatedTimeDisplay = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              const infoElement = document.getElementById(`info-${message.id}`);
+              if (infoElement) {
+                infoElement.textContent = `${updatedMessage.sender === currentUser.email ? 'You' : updatedMessage.sender} • ${updatedTimeDisplay}`;
+              }
+            }
+          });
+      }
+      
+      // Scroll to the new message
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    // Initialize responsive layout
+    function initResponsiveLayout() {
+      // Initial setup based on screen size
+      if (window.innerWidth <= 768) {
+        // On small screens, show the sidebar first
+        if (currentContact) {
+          sidebar.classList.add('hidden-mobile');
         } else {
-          messageElement.classList.add('received');
+          sidebar.classList.remove('hidden-mobile');
         }
-        
-        const textElement = document.createElement('div');
-        textElement.classList.add('message-text');
-        textElement.textContent = message.text;
-        
-        const infoElement = document.createElement('div');
-        infoElement.classList.add('message-info');
-        
-        // Store the message element ID to update it later
-        const messageId = message.id || Date.now().toString();
-        messageElement.id = `message-${messageId}`;
-        
-        // Format timestamp if it exists
-        let timeDisplay = 'Sending...';
-        if (message.timestamp) {
-          const date = message.timestamp.toDate();
-          timeDisplay = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-        
-        infoElement.textContent = `${message.sender === currentUser.email ? 'You' : message.sender} • ${timeDisplay}`;
-        infoElement.id = `info-${messageId}`;
-        
-        messageElement.appendChild(textElement);
-        messageElement.appendChild(infoElement);
-        
-        messagesContainer.appendChild(messageElement);
-        
-        // If timestamp doesn't exist, set up a listener for this specific message
-        if (!message.timestamp && message.id) {
-          const chatId = [currentUser.email, currentContact].sort().join('_');
-          db.collection('chats').doc(chatId).collection('messages').doc(message.id)
-            .onSnapshot((doc) => {
-              if (doc.exists && doc.data().timestamp) {
-                const updatedMessage = doc.data();
-                const date = updatedMessage.timestamp.toDate();
-                const updatedTimeDisplay = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const infoElement = document.getElementById(`info-${message.id}`);
-                if (infoElement) {
-                  infoElement.textContent = `${updatedMessage.sender === currentUser.email ? 'You' : updatedMessage.sender} • ${updatedTimeDisplay}`;
-                }
-              }
-            });
-        }
+      } else {
+        // On larger screens, always show both sidebar and chat
+        sidebar.classList.remove('hidden-mobile');
       }
-      
-      // Update the sendMessage function to return the message ID
-      function sendMessage(messageText, toEmail) {
-        // Create a unique chat ID from the two email addresses (always ordered the same way)
-        const chatId = [currentUser.email, toEmail].sort().join('_');
-        
-        // Create a new document reference to get the ID
-        const messageRef = db.collection('chats').doc(chatId).collection('messages').doc();
-        
-        // Create the message object
-        const messageData = {
-          sender: currentUser.email,
-          text: messageText,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-          id: messageRef.id // Store the ID in the message itself
-        };
-        
-        // Add message to Firestore
-        messageRef.set(messageData)
-          .catch((error) => {
-            console.error("Error sending message: ", error);
-          });
-        
-        // Also display the message immediately with Sending... status
-        displayMessage({
-          ...messageData,
-          timestamp: null, // Set to null to show "Sending..."
-        });
-        
-        return messageRef.id;
-      }
-      
-      // Update the loadMessages function to include message ID
-      function loadMessages(contactEmail) {
-        // Create a unique chat ID from the two email addresses (always ordered the same way)
-        const chatId = [currentUser.email, contactEmail].sort().join('_');
-        
-        // Clear previous messages
-        messagesContainer.innerHTML = '';
-        
-        // Listen for messages in this chat
-        messagesListener = db.collection('chats').doc(chatId).collection('messages')
-          .orderBy('timestamp')
-          .onSnapshot((snapshot) => {
-            snapshot.docChanges().forEach((change) => {
-              if (change.type === 'added') {
-                const message = change.doc.data();
-                // Only display if not already displayed
-                if (!document.getElementById(`message-${message.id || change.doc.id}`)) {
-                  message.id = message.id || change.doc.id; // Ensure the message has an ID
-                  displayMessage(message);
-                }
-              }
-            });
-            
-            // Scroll to bottom of messages
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-          });
-      }
+    }
+    
+    // Handle window resize
+    window.addEventListener('resize', initResponsiveLayout);
   });
   
