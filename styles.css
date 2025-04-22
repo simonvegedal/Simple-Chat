@@ -200,6 +200,8 @@ input[type="email"], input[type="password"], input[type="text"] {
   padding: 15px;
   background-color: white;
   border-bottom: 1px solid #e6e6e6;
+  display: flex;
+  align-items: center;
 }
 
 .chat-header h3 {
@@ -269,8 +271,96 @@ input[type="email"], input[type="password"], input[type="text"] {
   align-items: center;
 }
 
-
 .hidden {
   display: none !important;
 }
 
+/* Mobile Navigation */
+.mobile-nav {
+  display: flex;
+  align-items: center;
+}
+
+.back-button {
+  display: none; /* Hidden by default */
+  background: none;
+  border: none;
+  color: #5682a3;
+  font-size: 24px;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+/* Media Queries for Responsive Design */
+@media screen and (max-width: 768px) {
+  /* Overall layout adjustments */
+  .container {
+    height: 100%;
+    padding: 0;
+  }
+  
+  /* Authentication adjustments */
+  .auth-box {
+    width: 90%;
+    max-width: 400px;
+    padding: 20px;
+  }
+  
+  /* Chat layout for mobile */
+  #chat-container {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 10;
+    transition: transform 0.3s ease;
+  }
+  
+  .sidebar.hidden-mobile {
+    transform: translateX(-100%);
+  }
+  
+  .chat-area {
+    width: 100%;
+    z-index: 5;
+  }
+  
+  /* Show back button on mobile */
+  .back-button {
+    display: inline; /* Show on mobile */
+  }
+  
+  /* Message form adjustments */
+  .message-form {
+    padding: 10px;
+  }
+  
+  .message-form input {
+    height: 45px;
+  }
+  
+  .message-form .btn {
+    height: 45px;
+    width: 60px;
+  }
+}
+
+/* Additional mobile optimizations */
+@media screen and (max-width: 480px) {
+  .message {
+    max-width: 85%; /* Allow messages to be wider on small screens */
+  }
+  
+  .contacts-list {
+    max-height: calc(100vh - 130px); /* Limit height on very small screens */
+  }
+  
+  .messages-container {
+    padding: 10px;
+  }
+}
