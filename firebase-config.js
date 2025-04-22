@@ -14,4 +14,3 @@ const firebaseConfig = {
   // Get references to Firebase services
   const auth = firebase.auth();
   const db = firebase.firestore();
-  
